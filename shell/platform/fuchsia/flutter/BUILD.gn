@@ -33,6 +33,19 @@ config("runner_product_config") {
   defines = [ "DART_PRODUCT" ]
 }
 
+shared_library("ffi_foo_functions") {
+  # deps = [ ":dart" ]
+
+  sources = [
+    "ffi_test_functions.cc",
+  ]
+
+  if (is_linux || is_android) {
+    cflags = [ "-fPIC" ]
+  }
+
+}
+
 template("runner_sources") {
   assert(defined(invoker.product), "runner_sources must define product")
 
@@ -196,6 +209,7 @@ template("flutter_runner") {
     sources = [ "main.cc" ]
 
     deps = [
+            ":ffi_foo_functions",
              ":flutter_runner_sources${product_suffix}",
              "$fuchsia_sdk_root/pkg:async-loop-cpp",
              "$fuchsia_sdk_root/pkg:trace",
@@ -268,6 +282,7 @@ template("jit_runner") {
     snapshot_gen_dir = get_label_info(snapshot_label, "target_gen_dir")
 
     deps = [
+      ":ffi_foo_functions",
       ":jit${product_suffix}",
       snapshot_label,
     ]
@@ -339,7 +354,10 @@ template("jit_runner") {
 
     resources += _vulkan_icds
 
-    libraries = _libs
+    libraries = _libs + [{
+      name = "libffi_foo_functions.so"
+      path = rebase_path(root_out_dir)
+    }]
 
     meta = [
       {
@@ -358,7 +376,7 @@ template("aot_runner") {
   }
 
   fuchsia_archive(target_name) {
-    deps = [ ":aot${product_suffix}" ]
+    deps = [ ":aot${product_suffix}",  ":ffi_foo_functions",]
 
     if (!product) {
       deps += [
@@ -404,7 +422,10 @@ template("aot_runner") {
 
     resources += _vulkan_icds
 
-    libraries = _libs
+    libraries = _libs +   [{
+    name = "libffi_foo_functions.so"
+    path = rebase_path(root_out_dir)
+  }]
 
     meta = [
       {
